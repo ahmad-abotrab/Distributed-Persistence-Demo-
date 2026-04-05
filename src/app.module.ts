@@ -6,6 +6,7 @@ import { PrimaryDbModule } from './database/primary-db.module';
 import { ReplicaDbModule } from './database/replica-db.module';
 import { ProductsModule } from './products/products.module';
 import { ReplicationModule } from './replication/replication.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 @Module({
@@ -13,6 +14,7 @@ import { ReplicationModule } from './replication/replication.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     PrimaryDbModule,
     ReplicaDbModule,
     ProductsModule,
