@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrimaryDbModule } from './database/primary-db.module';
 import { ReplicaDbModule } from './database/replica-db.module';
 import { ProductsModule } from './products/products.module';
+import { ReplicationModule } from './replication/replication.module';
 
 
 @Module({
@@ -15,6 +16,7 @@ import { ProductsModule } from './products/products.module';
     PrimaryDbModule,
     ReplicaDbModule,
     ProductsModule,
+    ReplicationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
