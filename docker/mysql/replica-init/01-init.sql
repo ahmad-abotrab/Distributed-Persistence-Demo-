@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS health_check (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO health_check (name) VALUES ('replica ready');
