@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './create-product.dto';
+import { UpdateProductDto } from './update-product.dto';
 
 @ApiTags('products')
 @Controller('products')
@@ -13,6 +14,16 @@ export class ProductsController {
     @ApiBody({ type: CreateProductDto })
     async create(@Body() body: CreateProductDto) {
         return await this.productsService.create(body);
+    }
+    @Put(':id')
+    @ApiOperation({ summary: 'Update a product by id (writes to primary DB)' })
+    @ApiParam({ name: 'id', type: Number })
+    @ApiBody({ type: UpdateProductDto })
+    async update(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: UpdateProductDto,
+    ) {
+        return await this.productsService.update(id, body);
     }
 
     @Get()

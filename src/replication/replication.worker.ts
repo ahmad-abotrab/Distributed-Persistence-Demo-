@@ -61,9 +61,10 @@ export class ReplicationWorker {
         if (log.entityType !== 'Product') {
             throw new Error(`Unsupported entityType: ${log.entityType}`);
         }
-        if (log.operationType === 'INSERT') {
-            const payload = log.payload;
 
+        const payload = log.payload;
+
+        if (log.operationType === 'INSERT') {
             const existing = await this.replicaProductRepository.findOne({
                 where: { id: payload.id },
             });
@@ -71,6 +72,7 @@ export class ReplicationWorker {
             if (existing) {
                 return;
             }
+
             const product = this.replicaProductRepository.create({
                 id: payload.id,
                 name: payload.name,
@@ -79,7 +81,27 @@ export class ReplicationWorker {
                 createdAt: payload.createdAt,
                 updatedAt: payload.updatedAt,
             });
+
             await this.replicaProductRepository.save(product);
+            return;
+        }
+
+        if (log.operationType === 'UPDATE') {
+            const existing = await this.replicaProductRepository.findOne({
+                where: { id: payload.id },
+            });
+
+            if (!existing) {
+                throw new Error(`Product with id ${payload.id} not found in replica for update`);
+            }
+
+            existing.name = payload.name;
+            existing.price = payload.price;
+            existing.stock = payload.stock;
+            existing.createdAt = payload.createdAt;
+            existing.updatedAt = payload.updatedAt;
+
+            await this.replicaProductRepository.save(existing);
             return;
         }
 

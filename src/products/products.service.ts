@@ -42,6 +42,41 @@ export class ProductsService {
         return savedProduct;
     }
 
+    async update(
+        id: number,
+        data: Partial<{ name: string; price: number; stock: number }>,
+    ) {
+        const product = await this.primaryProductRepository.findOne({
+            where: { id },
+        });
+
+        if (!product) {
+            throw new NotFoundException(`Product with id ${id} not found in primary`);
+        }
+
+        if (data.name !== undefined) product.name = data.name;
+        if (data.price !== undefined) product.price = data.price;
+        if (data.stock !== undefined) product.stock = data.stock;
+
+        const updatedProduct = await this.primaryProductRepository.save(product);
+
+        await this.replicationService.logChange({
+            entityType: 'Product',
+            entityId: updatedProduct.id,
+            operationType: 'UPDATE',
+            payload: {
+                id: updatedProduct.id,
+                name: updatedProduct.name,
+                price: updatedProduct.price,
+                stock: updatedProduct.stock,
+                createdAt: updatedProduct.createdAt,
+                updatedAt: updatedProduct.updatedAt,
+            },
+        });
+
+        return updatedProduct;
+    }
+
     async findAllFromReplica() {
         return await this.replicaProductRepository.find({
             order: { id: 'DESC' },
