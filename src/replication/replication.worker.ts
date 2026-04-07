@@ -18,24 +18,41 @@ export class ReplicationWorker {
         private readonly replicaProductRepository: Repository<Product>,
     ) { }
 
-    @Cron('*/5 * * * * *')
+    @Cron('*/1 * * * * *')
     async handleReplication() {
         if (this.isRunning) {
             return;
         }
+
         this.isRunning = true;
 
         try {
-            const pendingLogs = await this.replicationLogRepository.find({
-                where: { status: 'PENDING' },
+            const logs = await this.replicationLogRepository.find({
                 order: { id: 'ASC' },
             });
 
-            if (pendingLogs.length === 0) {
+            const readyLogs = logs.filter((log) => {
+                if (log.status === 'PENDING') {
+                    return true;
+                }
+
+                if (
+                    log.status === 'FAILED' &&
+                    log.retryCount < log.maxRetries &&
+                    log.nextRetryAt &&
+                    new Date(log.nextRetryAt) <= new Date()
+                ) {
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (readyLogs.length === 0) {
                 return;
             }
 
-            for (const log of pendingLogs) {
+            for (const log of readyLogs) {
                 try {
                     await this.processLog(log);
 
@@ -45,9 +62,18 @@ export class ReplicationWorker {
 
                     await this.replicationLogRepository.save(log);
                 } catch (error) {
+                    log.retryCount += 1;
                     log.status = 'FAILED';
                     log.errorMessage =
                         error instanceof Error ? error.message : 'Unknown replication error';
+
+                    if (log.retryCount < log.maxRetries) {
+                        const retryDelaySeconds = this.getRetryDelaySeconds(log.retryCount);
+                        log.nextRetryAt = new Date(Date.now() + retryDelaySeconds * 1000);
+                    } else {
+                        log.nextRetryAt = null;
+                    }
+
                     await this.replicationLogRepository.save(log);
 
                     this.logger.error(`Failed to process log ${log.id}`, error);
@@ -57,6 +83,13 @@ export class ReplicationWorker {
             this.isRunning = false;
         }
     }
+
+    private getRetryDelaySeconds(retryCount: number): number {
+        if (retryCount === 1) return 10;
+        if (retryCount === 2) return 20;
+        return 30;
+    }
+
     private async processLog(log: ReplicationLog) {
         if (log.entityType !== 'Product') {
             throw new Error(`Unsupported entityType: ${log.entityType}`);

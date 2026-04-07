@@ -35,6 +35,15 @@ export class ReplicationLog {
     @Column({ type: 'datetime', nullable: true })
     processedAt!: Date | null;
 
+    @Column({ type: 'int', default: 0 })
+    retryCount!: number;
+
+    @Column({ type: 'int', default: 3 })
+    maxRetries!: number;
+
+    @Column({ type: 'datetime', nullable: true })
+    nextRetryAt!: Date | null;
+
     @CreateDateColumn()
     createdAt!: Date;
 

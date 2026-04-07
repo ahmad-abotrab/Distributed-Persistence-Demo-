@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
 import { ReplicationLog, ReplicationOperationType } from './replication-log.entity';
 
 @Injectable()
@@ -24,14 +24,25 @@ export class ReplicationService {
             status: 'PENDING',
             errorMessage: null,
             processedAt: null,
+            retryCount: 0,
+            maxRetries: 3,
+            nextRetryAt: null,
         });
 
         return await this.replicationLogRepository.save(log);
     }
 
-    async findPendingLogs() {
+    async findLogsReadyForProcessing() {
+        const now = new Date();
+
         return await this.replicationLogRepository.find({
-            where: { status: 'PENDING' },
+            where: [
+                { status: 'PENDING' },
+                {
+                    status: 'FAILED',
+                    nextRetryAt: LessThanOrEqual(now),
+                },
+            ],
             order: { id: 'ASC' },
         });
     }
